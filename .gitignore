@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Results
+vit/results/
+
 # C extensions
 *.so
 
