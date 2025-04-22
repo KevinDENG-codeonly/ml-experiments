@@ -1,0 +1,76 @@
+# General Configuration
+experiment_name: "vit_experiment"
+output_dir: "outputs"
+seed: 42
+
+# Dataset Configuration
+dataset_name: "cifar10"
+dataset_config:
+  data_dir: "data/cifar10"
+  val_split: 0.1
+  img_size: 224
+  batch_size: 32
+  num_workers: 4
+
+# Model Configuration
+model_name: "vit"
+model_config:
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  num_heads: 12
+  depth: 12
+  mlp_dim: 3072
+
+# Training Configuration
+epochs: 100
+learning_rate: 0.0001
+optimizer: "adam"
+weight_decay: 0.0001
+scheduler: "cosine"
+loss: "cross_entropy"
+save_freq: 10
+
+# Evaluation Configuration
+metrics:
+  - "accuracy"
+  - "precision"
+  - "recall"
+  - "f1"
+
+# Hyperparameter Search Configuration
+n_trials: 10
+study_name: "vit_hparam_search"
+search_epochs: 10
+search_space:
+  model:
+    patch_size:
+      options: [8, 16, 32]
+    embed_dim:
+      min: 128
+      max: 768
+    num_heads:
+      min: 4
+      max: 12
+    depth:
+      min: 4
+      max: 12
+    mlp_dim:
+      min: 512
+      max: 3072
+  training:
+    learning_rate:
+      log_min: 0.00001
+      log_max: 0.001
+    optimizer:
+      options: ["adam", "sgd"]
+    weight_decay:
+      log_min: 0.00001
+      log_max: 0.01
+    batch_size:
+      options: [16, 32, 64, 128]
+
+# Inference Configuration
+inference:
+  return_top_k: 5
+  threshold: 0.5

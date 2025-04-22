@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from .base import BaseModel
+from .registry import register_model
 
 class PatchEmbedding(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768):
@@ -49,7 +51,8 @@ class TransformerEncoderBlock(nn.Module):
         x = x + self.mlp(self.norm2(x))
         return x
     
-class VisionTransformer(nn.Module):
+@register_model("vit")
+class VisionTransformer(BaseModel):
     def __init__(self, img_size=224, patch_size=16, num_classes=10, embed_dim=768, num_heads=8, depth=6, mlp_dim=1024):
         super().__init__()
         self.patch_embedding = PatchEmbedding(img_size, patch_size, 3, embed_dim)
