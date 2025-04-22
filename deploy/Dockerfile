@@ -1,6 +1,6 @@
 FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
-WORKDIR /app
+WORKDIR /usr/ml-experiments
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,27 +9,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install FastAPI and serving dependencies
-RUN pip install --no-cache-dir fastapi uvicorn
-
-# Copy project files
+# Copy project files first (including setup.py)
 COPY . .
 
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV MODEL_PATH=/app/models/best_model.pth
+# Install the package in development mode
+RUN pip install -e .
 
-# Create models directory
-RUN mkdir -p /app/models
+# Set environment variables
+ENV PYTHONPATH=/usr/ml-experiments
+ENV MODEL_PATH=/usr/ml-experiments/models/best_model.pth
+
+# Make training script executable
+RUN chmod +x train_cloud.sh
+
+# Create necessary directories
+RUN mkdir -p /usr/ml-experiments/models
+RUN mkdir -p /outputs
+RUN mkdir -p /data
 
 # Expose port for API
 EXPOSE 5000
 
-# Run the server
-CMD ["uvicorn", "deploy.serve:get_application", "--host", "0.0.0.0", "--port", "5000"] 
+# Run the server for inference, or use train_cloud.sh for training
+CMD ["uvicorn", "ml_experiments.deploy.serve:get_application", "--host", "0.0.0.0", "--port", "5000"] 

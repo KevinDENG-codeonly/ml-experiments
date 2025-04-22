@@ -2,7 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any
 import torch
 import torch.nn as nn
-from ..utils.logger import get_logger
+import sys
+import os
+
+# 在文件顶部添加项目根目录到sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 

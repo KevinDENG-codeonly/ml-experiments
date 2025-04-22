@@ -2,8 +2,8 @@
 # Cloud training script for ViT with PyTorch 2.1.0, CUDA 12.1.0 and Python 3.10
 
 # Set environment variables
-export PYTHONPATH=$(pwd):$PYTHONPATH
-export CUDA_VISIBLE_DEVICES=0,1,2,3  # Adjust based on available GPUs
+export PYTHONPATH=/usr/ml-experiments:$PYTHONPATH
+cd /usr/ml-experiments
 
 # Print versions
 echo "Python version:"
