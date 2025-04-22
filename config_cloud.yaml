@@ -1,0 +1,53 @@
+# Cloud Training Configuration
+experiment_name: "vit_cloud_training"
+output_dir: "/outputs"  # Use absolute path for cloud storage
+seed: 42
+
+# Dataset Configuration
+dataset_name: "cifar10"  # You can replace with your actual dataset
+dataset_config:
+  data_dir: "/data"  # Use absolute path for cloud storage
+  val_split: 0.1
+  img_size: 224
+  batch_size: 128  # Larger batch size for cloud GPUs
+  num_workers: 8  # More workers for cloud processing
+
+# Model Configuration
+model_name: "vit"
+model_config:
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  num_heads: 12
+  depth: 12
+  mlp_dim: 3072
+
+# Training Configuration
+epochs: 100
+learning_rate: 0.0001
+optimizer: "adamw"  # Use AdamW for better performance
+weight_decay: 0.05  # Recommended for ViT
+scheduler: "cosine"
+loss: "cross_entropy"
+save_freq: 10
+
+# PyTorch Specific Configuration
+pytorch_config:
+  precision: "amp"  # Use automatic mixed precision for faster training
+  cudnn_benchmark: true
+  compile_model: true  # Use torch.compile() for PyTorch 2.1.0 speedup
+  gradient_accumulation_steps: 1
+  gradient_clip_val: 1.0
+
+# Evaluation Configuration
+metrics:
+  - "accuracy"
+  - "precision"
+  - "recall"
+  - "f1"
+
+# Distributed Training Configuration
+distributed:
+  backend: "nccl"  # NCCL is best for CUDA
+  sync_bn: true  # Use sync batch norm for multi-GPU
+  find_unused_parameters: false 

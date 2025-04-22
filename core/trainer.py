@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from typing import Any, Optional, Tuple
 import json
 import numpy as np
+from torch.cuda.amp import GradScaler, autocast
 
 from .base import BaseHandler
 from ..utils.logger import get_logger
@@ -53,8 +54,22 @@ class Trainer(BaseHandler):
         self.best_val_loss = float('inf')
         self.best_epoch = 0
         
+        # PyTorch 2.1.0 specific features
+        pytorch_config = config.get("pytorch_config", {})
+        self.use_amp = pytorch_config.get("precision", "") == "amp"
+        self.use_compile = pytorch_config.get("compile_model", False)
+        self.gradient_accumulation_steps = pytorch_config.get("gradient_accumulation_steps", 1)
+        self.grad_clip_val = pytorch_config.get("gradient_clip_val", 1.0)
+        
+        # Multi-GPU setup
+        self.distributed_config = config.get("distributed", {})
+        self.sync_bn = self.distributed_config.get("sync_bn", False)
+        
         # Create save directory if it doesn't exist
         os.makedirs(self.save_dir, exist_ok=True)
+        
+        # Initialize gradient scaler for AMP
+        self.scaler = GradScaler() if self.use_amp else None
         
     def setup(self, train_loader=None, val_loader=None, model=None):
         """Setup for training."""
@@ -70,6 +85,25 @@ class Trainer(BaseHandler):
             
         self.model = self.model.to(self.device)
         
+        # Enable mixed precision training
+        if self.use_amp:
+            logger.info("Using Automatic Mixed Precision training")
+            
+        # Sync batch norm for multi-GPU training
+        if self.sync_bn and torch.cuda.device_count() > 1:
+            logger.info("Using Synchronized BatchNorm")
+            self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+            
+        # Use torch.compile for faster training (PyTorch 2.1.0 feature)
+        if self.use_compile:
+            logger.info("Using torch.compile() for faster training")
+            self.model = torch.compile(self.model)
+            
+        # Set up DDP for distributed training
+        if torch.cuda.device_count() > 1:
+            logger.info(f"Using {torch.cuda.device_count()} GPUs!")
+            self.model = nn.DataParallel(self.model)
+            
         # Create criterion
         criterion_name = self.config.get("criterion", "cross_entropy")
         if criterion_name == "cross_entropy":
@@ -151,19 +185,49 @@ class Trainer(BaseHandler):
             images = images.to(self.device)
             targets = targets.to(self.device)
             
-            # Forward pass
-            self.optimizer.zero_grad()
-            outputs = self.model(images)
-            loss = self.criterion(outputs, targets)
-            
-            # Backward pass
-            loss.backward()
-            
-            # Gradient clipping
-            if self.grad_clip > 0:
-                nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+            # Reset gradients
+            if i % self.gradient_accumulation_steps == 0:
+                self.optimizer.zero_grad()
                 
-            self.optimizer.step()
+            # Forward pass with AMP
+            if self.use_amp:
+                with autocast():
+                    outputs = self.model(images)
+                    loss = self.criterion(outputs, targets)
+                    # Scale loss for gradient accumulation if needed
+                    if self.gradient_accumulation_steps > 1:
+                        loss = loss / self.gradient_accumulation_steps
+                    
+                # Backward pass with AMP
+                self.scaler.scale(loss).backward()
+                
+                if (i + 1) % self.gradient_accumulation_steps == 0:
+                    # Gradient clipping
+                    if self.grad_clip_val > 0:
+                        self.scaler.unscale_(self.optimizer)
+                        nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_val)
+                    
+                    # Update weights
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+            else:
+                # Standard forward pass
+                outputs = self.model(images)
+                loss = self.criterion(outputs, targets)
+                # Scale loss for gradient accumulation if needed
+                if self.gradient_accumulation_steps > 1:
+                    loss = loss / self.gradient_accumulation_steps
+                
+                # Standard backward pass
+                loss.backward()
+                
+                if (i + 1) % self.gradient_accumulation_steps == 0:
+                    # Gradient clipping
+                    if self.grad_clip_val > 0:
+                        nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_val)
+                    
+                    # Update weights
+                    self.optimizer.step()
             
             # Calculate accuracy
             _, predicted = outputs.max(1)
@@ -171,7 +235,7 @@ class Trainer(BaseHandler):
             accuracy = correct / batch_size
             
             # Update metrics
-            losses.update(loss.item(), batch_size)
+            losses.update(loss.item() * (self.gradient_accumulation_steps if self.gradient_accumulation_steps > 1 else 1), batch_size)
             accuracies.update(accuracy, batch_size)
             
             # Update progress bar
@@ -196,9 +260,14 @@ class Trainer(BaseHandler):
                 images = images.to(self.device)
                 targets = targets.to(self.device)
                 
-                # Forward pass
-                outputs = self.model(images)
-                loss = self.criterion(outputs, targets)
+                # Forward pass with AMP
+                if self.use_amp:
+                    with autocast():
+                        outputs = self.model(images)
+                        loss = self.criterion(outputs, targets)
+                else:
+                    outputs = self.model(images)
+                    loss = self.criterion(outputs, targets)
                 
                 # Calculate accuracy
                 _, predicted = outputs.max(1)
