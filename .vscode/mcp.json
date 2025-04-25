@@ -6,13 +6,6 @@
                 "-y",
                 "@modelcontextprotocol/server-sequential-thinking"
             ]
-        },
-        "parallel-thinking": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-parallel-thinking"
-            ]
         }
     }
 }
