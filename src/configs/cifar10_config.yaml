@@ -1,0 +1,58 @@
+experiment_name: vit_cifar10
+seed: 42
+device: cuda
+precision: 16-mixed
+distributed: false
+world_size: 1
+
+data:
+  dataset: cifar10
+  data_dir: ./data
+  image_size: 224
+  batch_size: 128
+  num_workers: 4
+  pin_memory: true
+  train_val_split: 0.9
+
+model:
+  model_name: vit_small_patch16
+  patch_size: 16
+  hidden_dim: 384
+  num_heads: 6
+  num_layers: 12
+  mlp_dim: 1536
+  dropout: 0.1
+  attention_dropout: 0.0
+  num_classes: 10
+  representation_size: null
+  pretrained: false
+  pretrained_path: null
+
+training:
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.05
+  warmup_steps: 500
+  optimizer: adamw
+  scheduler: cosine
+  min_lr: 0.00001
+  lr_scheduler_decay_steps: null
+  lr_scheduler_decay_rate: 0.1
+  label_smoothing: 0.1
+  mixup_alpha: 0.2
+  cutmix_alpha: 0.0
+  auto_augment: true
+  random_erase: 0.1
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 1
+  use_amp: true
+
+logging:
+  log_dir: ./outputs/logs
+  save_dir: ./outputs/models
+  log_every_n_steps: 50
+  val_check_interval: 1.0
+  save_top_k: 3
+  save_last: true
+  monitor: val_accuracy
+  mode: max 

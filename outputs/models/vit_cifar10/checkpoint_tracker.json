@@ -1,0 +1,12 @@
+{
+  "checkpoints": [
+    {
+      "path": "./outputs/models/vit_cifar10/epoch_0_step_1407_val_accuracy_20.4600.pt",
+      "epoch": 0,
+      "global_step": 1407,
+      "score": 20.46
+    }
+  ],
+  "best_model_path": "./outputs/models/vit_cifar10/best.pt",
+  "last_model_path": "./outputs/models/vit_cifar10/last.pt"
+}
