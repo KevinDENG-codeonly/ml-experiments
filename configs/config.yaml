@@ -1,0 +1,43 @@
+# --- General ---
+experiment_name: "show_and_tell_coco"
+device: "cuda"  # "cuda" or "cpu"
+random_seed: 42
+
+# --- Dataset ---
+# Paths will be derived in the training script, but we can set defaults if needed
+# annotations_file_train: "data/raw/annotations/captions_train2014.json"
+# image_dir_train: "data/raw/train2014"
+# annotations_file_val: "data/raw/annotations/captions_val2014.json"
+# image_dir_val: "data/raw/val2014"
+vocab_path: "data/processed/vocab.json"
+vocab_freq_threshold: 5
+max_caption_length: 30 # Max sequence length for captions, including <start>, <end>
+image_size: 224 # Target size for image resizing (e.g., 224 for ResNet, 299 for Inception)
+
+# --- Model ---
+# EncoderCNN parameters
+encoder_cnn_model: "resnet50" # "resnet50", "resnet101", etc.
+encoder_pretrained: True
+embed_size: 256 # Dimension of image features and word embeddings
+
+# DecoderRNN parameters
+hidden_size: 512 # Dimension of LSTM hidden states
+decoder_num_layers: 1 # Number of LSTM layers
+decoder_dropout_prob: 0.5
+
+# --- Training ---
+batch_size: 64
+num_epochs: 20
+learning_rate: 0.001
+lr_scheduler_step_size: 5 # For StepLR scheduler
+lr_scheduler_gamma: 0.1   # For StepLR scheduler
+optimizer_type: "Adam" # "Adam", "SGD"
+gradient_clip_value: 5.0
+log_interval: 100 # Log training status every N batches
+save_every_epochs: 1 # Save model checkpoint every N epochs
+checkpoint_dir: "models/checkpoints"
+
+# --- Feature Caching (Optional) ---
+# cache_features: True
+# image_features_dir: "data/processed/image_features" # Directory to store precomputed features
+# feature_cache_batch_size: 128 # Batch size for precomputing features 

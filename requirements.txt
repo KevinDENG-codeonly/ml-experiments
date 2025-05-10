@@ -1,0 +1,13 @@
+\
+torch
+torchvision
+pycocotools
+nltk
+numpy
+Pillow
+requests
+tqdm
+uv
+PyYAML
+pytest
+pytest-mock
